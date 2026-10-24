@@ -1,0 +1,19 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: shellcheck bin/omarchy-zipline install.sh uninstall.sh test/cli-test.sh
+      - name: CLI against a fake Zipline server
+        run: bash test/cli-test.sh
+      - name: Model and QML contract
+        run: |
+          node test/model-test.js
+          node test/qml-contract-test.js

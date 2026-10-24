@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.cempack.zipline",
+  "name": "Zipline",
+  "version": "1.0.0",
+  "author": "Elliot Moreau",
+  "license": "MIT",
+  "description": "Upload screenshots, screen recordings, files and the clipboard to your Zipline server and copy the link.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Zipline",
+    "description": "Upload a region, window, full screen, the last screen recording, the clipboard or a file to Zipline. Right-click uploads a screenshot.",
+    "category": "Utilities",
+    "aliases": ["zipline", "upload", "share", "screenshot"],
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "historyCount": 5
+    },
+    "schema": [
+      {
+        "key": "historyCount",
+        "type": "integer",
+        "label": "Recent links shown",
+        "min": 1,
+        "max": 10,
+        "step": 1,
+        "defaultValue": 5,
+        "description": "How many recent uploads the panel lists. Server URL and token live in ~/.config/omarchy-zipline/config, never in shell.json."
+      }
+    ]
+  }
+}
