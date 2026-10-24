@@ -25,9 +25,9 @@ Panel {
   readonly property int historyCount: Math.max(1, Math.min(10, Number(setting("historyCount", 5)) || 5))
   readonly property var actionRows: [
     { action: "clipboard", icon: "󰅇", label: "Clipboard" },
-    { action: "file", icon: "󰈔", label: "File…" },
-    { action: "recording", icon: "󰕧", label: "Last recording" },
-    { action: "last", icon: "󰆏", label: "Copy last link" }
+    { action: "file", icon: "󰈔", label: "File" },
+    { action: "recording", icon: "󰕧", label: "Recording" },
+    { action: "last", icon: "󰆏", label: "Last link" }
   ]
   readonly property int itemCount: actionRows.length + recent.length
 
@@ -160,9 +160,8 @@ Panel {
 
         Text {
           width: parent.width
-          text: root.serverUrl !== ""
-            ? "Uploads go to " + Model.hostOf(root.serverUrl) + ". The link is copied when done."
-            : (root.serverChecked ? "Not set up yet. Run omarchy-zipline setup in a terminal." : "Checking configuration…")
+          visible: root.serverChecked && root.serverUrl === ""
+          text: "Not set up: run omarchy-zipline setup"
           textFormat: Text.PlainText
           color: Qt.darker(root.contentForeground, 1.45)
           font.family: root.contentFontFamily
@@ -252,7 +251,7 @@ Panel {
             readonly property bool hot: recentMouse.containsMouse || root.cursorIndex === itemIndex
 
             width: content.width
-            height: Style.space(44)
+            height: Style.space(32)
             radius: Style.cornerRadius
             color: hot ? Style.hoverFillFor(root.contentForeground, Color.accent) : "transparent"
 
@@ -285,15 +284,6 @@ Panel {
                 font.pixelSize: Style.font.bodySmall
               }
 
-              Text {
-                width: parent.width
-                text: recentRow.modelData.url.replace(/^https?:\/\//, "") + "  ·  " + Model.shortTime(recentRow.modelData.time)
-                textFormat: Text.PlainText
-                elide: Text.ElideMiddle
-                color: Qt.darker(root.contentForeground, 1.5)
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.caption
-              }
             }
 
             MouseArea {
@@ -319,15 +309,6 @@ Panel {
           }
         }
 
-        Text {
-          width: parent.width
-          text: "Press Print as usual, then Shift + Print to upload it and copy the link. Click a recent link to copy it again."
-          textFormat: Text.PlainText
-          color: Qt.darker(root.contentForeground, 1.7)
-          font.family: root.contentFontFamily
-          font.pixelSize: Style.font.caption
-          wrapMode: Text.WordWrap
-        }
       }
     }
   }

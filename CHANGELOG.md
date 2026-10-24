@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.1
+
+- Panel: removed the status sentence and the footer hint; recent links take one line each.
+- Shorter labels in the panel and the Omarchy menu: Clipboard, File, Recording, Last link.
+
 ## 2.1.0
 
 - Simpler menu and panel. Omarchy menu > Capture > Zipline and the bar panel

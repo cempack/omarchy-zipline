@@ -169,10 +169,10 @@ text = re.sub(r"\n?[ \t]*// " + re.escape(begin) + r".*?// " + re.escape(end) + 
 z = shlex.quote(helper)
 rows = {
     "trigger.capture.zipline": {"icon": "󰅧", "label": "Zipline", "aliases": ["zipline", "upload"]},
-    "trigger.capture.zipline.clipboard": {"icon": "󰅇", "label": "Upload clipboard", "action": z + " clipboard"},
-    "trigger.capture.zipline.file": {"icon": "󰈔", "label": "Upload file…", "action": z + " file"},
-    "trigger.capture.zipline.recording": {"icon": "󰕧", "label": "Upload latest recording", "action": z + " recording"},
-    "trigger.capture.zipline.last": {"icon": "󰆏", "label": "Copy last link", "action": z + " last"},
+    "trigger.capture.zipline.clipboard": {"icon": "󰅇", "label": "Clipboard", "action": z + " clipboard"},
+    "trigger.capture.zipline.file": {"icon": "󰈔", "label": "File", "action": z + " file"},
+    "trigger.capture.zipline.recording": {"icon": "󰕧", "label": "Recording", "action": z + " recording"},
+    "trigger.capture.zipline.last": {"icon": "󰆏", "label": "Last link", "action": z + " last"},
 }
 block = "  // " + begin + " (managed by omarchy-zipline; uninstall.sh removes this block)\n"
 block += "".join("  %s: %s,\n" % (json.dumps(k), json.dumps(v, ensure_ascii=False)) for k, v in rows.items())
