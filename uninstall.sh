@@ -69,7 +69,9 @@ if [[ -L $BIN_LINK ]]; then
 fi
 
 if command -v omarchy >/dev/null 2>&1 && omarchy-shell shell ping >/dev/null 2>&1; then
-  omarchy plugin disable "$PLUGIN_ID" >/dev/null 2>&1 && say "Removed the bar widget" || true
+  if omarchy plugin disable "$PLUGIN_ID" >/dev/null 2>&1; then
+    say "Removed the bar widget"
+  fi
 fi
 
 if command -v hyprctl >/dev/null 2>&1 && [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then

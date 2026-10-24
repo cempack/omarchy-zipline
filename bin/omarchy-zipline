@@ -347,9 +347,11 @@ record() {
   printf '%s\n' "$url"
   local headline
   if [[ $kind == shorten ]]; then
-    ((COPY)) && headline="Short link copied" || headline="Short link created"
+    headline="Short link created"
+    ((COPY)) && headline="Short link copied"
   else
-    ((COPY)) && headline="Link copied" || headline="Uploaded"
+    headline="Uploaded"
+    ((COPY)) && headline="Link copied"
   fi
   notify "$headline" "$url" "$image" "$url"
 }
