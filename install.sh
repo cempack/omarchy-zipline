@@ -121,8 +121,9 @@ if ((WANT_BINDINGS)) && [[ -f $BINDINGS_FILE ]]; then
 
 local zipline = o.shell_quote([[$HELPER]])
 
-o.bind("SHIFT + PRINT", "Upload screenshot to Zipline", zipline .. " screenshot")
-o.bind("CTRL + SHIFT + PRINT", "Upload full-screen screenshot to Zipline", zipline .. " screenshot fullscreen")
+-- Screenshots come from Omarchy's own Print key, which copies the image to the
+-- clipboard; Shift + Print then uploads it.
+o.bind("SHIFT + PRINT", "Upload clipboard to Zipline (after Print)", zipline .. " clipboard")
 o.bind("ALT + SHIFT + PRINT", "Upload last screen recording to Zipline", zipline .. " recording")
 o.bind("SUPER + CTRL + U", "Upload clipboard to Zipline", zipline .. " clipboard")
 o.bind("SUPER + CTRL + SHIFT + U", "Zipline panel", "omarchy-shell $PLUGIN_ID toggle || omarchy-menu toggle trigger.capture.zipline")
@@ -136,12 +137,12 @@ require("default.hypr.require_optional").module("hypr.zipline")
 -- $MARK_END
 EOF
   fi
-  say "Keybindings: Shift+Print, Ctrl+Shift+Print, Alt+Shift+Print, Super+Ctrl+U, Super+Ctrl+Shift+U"
+  say "Keybindings: Shift+Print (after Print), Alt+Shift+Print, Super+Ctrl+U, Super+Ctrl+Shift+U"
 
   if have omarchy && omarchy menu keybindings --print >/dev/null 2>&1; then
     # Warn about keys the user already uses for something else.
     taken=$(omarchy menu keybindings --print 2>/dev/null | grep -vi zipline |
-      grep -E '^(SHIFT \+ PRINT|CTRL SHIFT \+ PRINT|SHIFT CTRL \+ PRINT|ALT SHIFT \+ PRINT|SHIFT ALT \+ PRINT|SUPER CTRL \+ U|SUPER CTRL SHIFT \+ U|SUPER SHIFT CTRL \+ U) ' || true)
+      grep -E '^(SHIFT \+ PRINT|ALT SHIFT \+ PRINT|SHIFT ALT \+ PRINT|SUPER CTRL \+ U|SUPER CTRL SHIFT \+ U|SUPER SHIFT CTRL \+ U) ' || true)
     if [[ -n $taken ]]; then
       say "Heads up, these keys are also bound elsewhere:"
       printf '%s\n' "$taken" | sed 's/^/      /'
@@ -168,13 +169,11 @@ text = re.sub(r"\n?[ \t]*// " + re.escape(begin) + r".*?// " + re.escape(end) + 
 z = shlex.quote(helper)
 rows = {
     "trigger.capture.zipline": {"icon": "󰅧", "label": "Zipline", "aliases": ["zipline", "upload"]},
-    "trigger.capture.zipline.region": {"icon": "󰆞", "label": "Upload screenshot", "action": z + " screenshot"},
-    "trigger.capture.zipline.window": {"icon": "󰖯", "label": "Upload window", "action": z + " screenshot windows"},
-    "trigger.capture.zipline.fullscreen": {"icon": "󰍹", "label": "Upload full screen", "action": z + " screenshot fullscreen"},
-    "trigger.capture.zipline.recording": {"icon": "󰕧", "label": "Upload last recording", "action": z + " recording"},
-    "trigger.capture.zipline.clipboard": {"icon": "󰅇", "label": "Upload clipboard", "action": z + " clipboard"},
-    "trigger.capture.zipline.file": {"icon": "󰈔", "label": "Upload file", "action": z + " file"},
-    "trigger.capture.zipline.shorten": {"icon": "󰌹", "label": "Shorten copied link", "action": z + " shorten"},
+    "trigger.capture.zipline.clipboard": {"icon": "󰅇", "label": "Upload clipboard (after Print)", "action": z + " clipboard"},
+    "trigger.capture.zipline.screenshot": {"icon": "󰆞", "label": "Upload latest screenshot", "action": z + " screenshot"},
+    "trigger.capture.zipline.recording": {"icon": "󰕧", "label": "Upload latest recording", "action": z + " recording"},
+    "trigger.capture.zipline.file": {"icon": "󰈔", "label": "Upload file…", "action": z + " file"},
+    "trigger.capture.zipline.shorten": {"icon": "󰌹", "label": "Shorten link", "action": z + " shorten"},
     "trigger.capture.zipline.last": {"icon": "󰆏", "label": "Copy last link", "action": z + " last"},
     "trigger.capture.zipline.setup": {"icon": "󰒓", "label": "Set up Zipline", "action": "omarchy-launch-floating-terminal-with-presentation " + shlex.quote(z + " setup")},
 }
@@ -220,7 +219,7 @@ fi
 
 echo
 if "$HELPER" server >/dev/null 2>&1; then
-  echo "Done. Press Shift + Print to upload a screenshot."
+  echo "Done. Press Print as usual, then Shift + Print to upload it and copy the link."
 else
   echo "Done. Next: run 'omarchy-zipline setup' (or Omarchy menu > Capture > Zipline > Set up)"
   echo "and paste your server URL and the API token from Zipline (avatar > Copy token)."

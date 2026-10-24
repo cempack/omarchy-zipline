@@ -24,11 +24,9 @@ Panel {
   readonly property string helperPath: Model.localPathFromUrl(Qt.resolvedUrl("bin/omarchy-zipline"))
   readonly property int historyCount: Math.max(1, Math.min(10, Number(setting("historyCount", 5)) || 5))
   readonly property var actionRows: [
-    { action: "region", icon: "󰆞", label: "Region" },
-    { action: "window", icon: "󰖯", label: "Window" },
-    { action: "fullscreen", icon: "󰍹", label: "Full screen" },
-    { action: "recording", icon: "󰕧", label: "Last recording" },
     { action: "clipboard", icon: "󰅇", label: "Clipboard" },
+    { action: "screenshot", icon: "󰆞", label: "Last screenshot" },
+    { action: "recording", icon: "󰕧", label: "Last recording" },
     { action: "file", icon: "󰈔", label: "File…" },
     { action: "shorten", icon: "󰌹", label: "Shorten link" },
     { action: "setup", icon: "󰒓", label: "Set up" }
@@ -329,7 +327,7 @@ Panel {
 
         Text {
           width: parent.width
-          text: "Click a link to copy it again. Shift + Print uploads a screenshot from anywhere."
+          text: "Press Print as usual, then Shift + Print to upload it and copy the link. Click a recent link to copy it again."
           textFormat: Text.PlainText
           color: Qt.darker(root.contentForeground, 1.7)
           font.family: root.contentFontFamily

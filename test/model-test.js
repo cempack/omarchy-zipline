@@ -6,12 +6,14 @@ const Model = require("../Model.js")
 
 const helper = "/home/u/.config/omarchy/plugins/io.github.cempack.zipline/bin/omarchy-zipline"
 
-assert.deepStrictEqual(Model.actionCommand(helper, "region"), [helper, "--delay", Model.CAPTURE_DELAY, "screenshot", "smart"])
-assert.deepStrictEqual(Model.actionCommand(helper, "fullscreen"), [helper, "--delay", Model.CAPTURE_DELAY, "screenshot", "fullscreen"])
 assert.deepStrictEqual(Model.actionCommand(helper, "clipboard"), [helper, "clipboard"])
+assert.deepStrictEqual(Model.actionCommand(helper, "screenshot"), [helper, "screenshot"])
 assert.deepStrictEqual(Model.actionCommand(helper, "recording"), [helper, "recording"])
 assert.deepStrictEqual(Model.actionCommand(helper, "rm -rf"), [])
-assert.deepStrictEqual(Model.actionCommand("", "region"), [])
+assert.deepStrictEqual(Model.actionCommand("", "clipboard"), [])
+// No capture modes: the plugin only uploads what Omarchy already captured.
+for (const gone of ["region", "window", "fullscreen"]) assert.deepStrictEqual(Model.actionCommand(helper, gone), [])
+assert.ok(Object.values(Model.ACTIONS).every(args => !args.includes("--delay")))
 
 assert.deepStrictEqual(Model.setupCommand("/a b/it's/zl"), ["omarchy-launch-floating-terminal-with-presentation", "'/a b/it'\\''s/zl' setup"])
 

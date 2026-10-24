@@ -39,9 +39,9 @@ BarWidget {
     if (panelLoader.item) panelLoader.item.closeForPopoutSwitch()
   }
 
-  function quickScreenshot() {
+  function quickUpload() {
     root.close()
-    Quickshell.execDetached(Model.actionCommand(root.helperPath, "region"))
+    Quickshell.execDetached(Model.actionCommand(root.helperPath, "clipboard"))
   }
 
   implicitWidth: button.implicitWidth
@@ -76,10 +76,10 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: "󰅧"
-    tooltipText: "Zipline — click for uploads, right-click to upload a screenshot"
+    tooltipText: "Zipline — click for uploads, right-click to upload the clipboard (e.g. after Print)"
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.LeftButton) root.togglePanel()
-      else if (buttonCode === Qt.RightButton) root.quickScreenshot()
+      else if (buttonCode === Qt.RightButton) root.quickUpload()
     }
   }
 }

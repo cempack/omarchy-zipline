@@ -1,10 +1,16 @@
 # Zipline for Omarchy
 
-Upload screenshots, screen recordings, files and the clipboard to your own
+Get a shareable link for anything Omarchy captures. Upload it to your own
 [Zipline](https://zipline.diced.sh) server from [Omarchy](https://omarchy.org),
-then paste the link anywhere. One key, and the link is on your clipboard.
+and the link lands on your clipboard.
 
-- **Shift + Print** uploads a screenshot (drag a region or click a window)
+The plugin doesn't take screenshots itself. Omarchy's **Print** key already does
+that, and copies the image to the clipboard. The plugin only uploads the result:
+
+1. Press **Print** as usual (select a region or window, annotate it if you like)
+2. Press **Shift + Print**: the screenshot is uploaded and its link is copied
+
+- Also uploads your latest screen recording, any file, or whatever else is on the clipboard
 - A bar icon with a panel for every action and your recent links
 - Entries under **Omarchy menu > Capture > Zipline**
 - Large recordings upload in chunks, so proxies like Cloudflare (100 MB limit) don't get in the way
@@ -33,8 +39,7 @@ and `python3`.
 
 | Keys | Does |
 |---|---|
-| `Shift + Print` | Screenshot a region or window, upload it |
-| `Ctrl + Shift + Print` | Screenshot the whole screen, upload it |
+| `Shift + Print` | Upload the clipboard. Right after `Print` that's your screenshot |
 | `Alt + Shift + Print` | Upload the newest screen recording (record with `Alt + Print` first) |
 | `Super + Ctrl + U` | Upload the clipboard: an image, copied files, or text. A copied link gets shortened |
 | `Super + Ctrl + Shift + U` | Open the Zipline panel |
@@ -43,16 +48,16 @@ When an upload finishes, the link is on your clipboard and a notification shows
 it. Click the notification to open the link.
 
 **Bar icon**: left-click opens the panel (all actions plus recent links; click a
-link to copy it again). Right-click uploads a screenshot straight away. Arrow
+link to copy it again). Right-click uploads the clipboard straight away. Arrow
 keys or `hjkl` and Enter work in the panel.
 
 **From a terminal**:
 
 ```sh
-omarchy-zipline screenshot [smart|region|windows|fullscreen]
-omarchy-zipline recording
+omarchy-zipline clipboard                        # after Print: uploads the screenshot
+omarchy-zipline screenshot                       # newest screenshot Omarchy saved
+omarchy-zipline recording                        # newest screen recording
 omarchy-zipline file ~/Documents/report.pdf      # no path opens the file chooser
-omarchy-zipline clipboard
 omarchy-zipline shorten https://example.com/a/very/long/link
 omarchy-zipline --expires 1d file notes.txt      # delete after a day
 omarchy-zipline last                             # copy the last link again
@@ -60,7 +65,10 @@ omarchy-zipline history 10
 omarchy-zipline status                           # check the URL and token
 ```
 
-Screenshots are also kept where Omarchy saves them (`~/Pictures` by default).
+Screenshots stay where Omarchy saves them (`~/Pictures` by default, or
+`OMARCHY_SCREENSHOT_DIR`). When the clipboard holds the screenshot Omarchy just
+saved, that file is uploaded, so the link keeps its `screenshot-<date>.png` name.
+An image you edited and copied from the annotation tool is uploaded as is.
 
 ## Configure
 

@@ -106,18 +106,66 @@ first=$("$CLI" history 1 | cut -f1)
 [[ $(stat -c %a "$XDG_STATE_HOME/omarchy-zipline/history.tsv") == 600 ]] || fail "history file is not private"
 echo "ok - history"
 
-# 7. A rejected token fails cleanly and names the problem.
+# 7. `screenshot` uploads the newest screenshot Omarchy saved, ignoring other files.
+PICS="$WORK/pics"
+mkdir -p "$PICS"
+make_png() {
+  python3 -I - "$1" "$2" <<'PY'
+import struct, sys, zlib
+path, shade = sys.argv[1], int(sys.argv[2])
+raw = b"".join(b"\x00" + bytes([shade, 40, 200] * 4) for _ in range(4))
+chunk = lambda t, d: struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
+open(path, "wb").write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 4, 4, 8, 2, 0, 0, 0))
+                       + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+PY
+}
+make_png "$PICS/screenshot-2026-10-24_10-00-00.png" 10
+make_png "$PICS/screenshot-2026-10-24_11-00-00.png" 20
+make_png "$PICS/holiday.png" 30
+touch -d '2026-10-24 10:00' "$PICS/screenshot-2026-10-24_10-00-00.png"
+touch -d '2026-10-24 11:00' "$PICS/screenshot-2026-10-24_11-00-00.png"
+touch -d '2026-10-24 12:00' "$PICS/holiday.png"
+url=$(OMARCHY_SCREENSHOT_DIR="$PICS" run screenshot) || fail "screenshot upload exited non-zero"
+[[ $url == "http://files.test/u/screenshot-2026-10-24_11-00-00.png" ]] || fail "screenshot did not pick the newest screenshot: $url"
+grep '"/api/upload"' "$LOG" | tail -n 1 | jq -e '.parts[0].type == "image/png"' >/dev/null || fail "screenshot not sent as image/png"
+[[ $("$CLI" history 1 | cut -f2) == screenshot ]] || fail "screenshot not recorded as a screenshot"
+if err=$(OMARCHY_SCREENSHOT_DIR="$WORK/empty" run screenshot 2>&1); then fail "screenshot with no screenshots should fail"; fi
+grep -q 'Take one with Print first' <<<"$err" || fail "no-screenshot hint absent: $err"
+echo "ok - screenshot picks the newest saved screenshot"
+
+# 8. Clipboard after Print: the image matches the saved screenshot, so that file
+#    (and its name) is uploaded; any other image goes up as clipboard-<date>.
+cat >"$WORK/bin/wl-paste" <<EOF
+#!/bin/bash
+src=\$(cat "$WORK/clip-src")
+case "\$*" in
+  *--list-types*) echo image/png ;;
+  *"--type image/png"*) cat "\$src" ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod +x "$WORK/bin/wl-paste"
+printf '%s' "$PICS/screenshot-2026-10-24_11-00-00.png" >"$WORK/clip-src"
+url=$(OMARCHY_SCREENSHOT_DIR="$PICS" run clipboard) || fail "clipboard upload exited non-zero"
+[[ $url == "http://files.test/u/screenshot-2026-10-24_11-00-00.png" ]] || fail "clipboard screenshot lost its name: $url"
+printf '%s' "$PICS/holiday.png" >"$WORK/clip-src"
+url=$(OMARCHY_SCREENSHOT_DIR="$PICS" run clipboard) || fail "clipboard image upload exited non-zero"
+[[ $url == http://files.test/u/clipboard-*.png ]] || fail "other clipboard image misnamed: $url"
+rm -f "$WORK/bin/wl-paste"
+echo "ok - clipboard after Print"
+
+# 9. A rejected token fails cleanly and names the problem.
 sed -i 's/^ZIPLINE_TOKEN=.*/ZIPLINE_TOKEN=wrong/' "$CONFIG"
 if err=$(run file "$WORK/note; v2 (final).txt" 2>&1); then fail "bad token should fail"; fi
 grep -q 'not logged in' <<<"$err" || fail "bad token error not surfaced: $err"
 echo "ok - rejected token"
 
-# 8. Missing config.
+# 10. Missing config.
 if err=$(OMARCHY_ZIPLINE_CONFIG="$WORK/none" run file "$WORK/big.bin" 2>&1); then fail "missing config should fail"; fi
 grep -q 'omarchy-zipline setup' <<<"$err" || fail "missing config hint absent: $err"
 echo "ok - missing config"
 
-# 9. The token never reached curl's argv.
+# 11. The token never reached curl's argv.
 if grep -q 'test-token-123\|wrong' "$WORK/curl-argv.log"; then fail "token leaked into curl argv"; fi
 echo "ok - token not in argv"
 

@@ -1,19 +1,16 @@
 // Pure helpers for the Zipline bar panel.
 // Qt-free so Node can unit-test the same functions the QML imports.
 
+// The plugin never captures the screen: Omarchy's Print key does that and puts
+// the image on the clipboard, these actions only upload what already exists.
 var ACTIONS = {
-  region: ["screenshot", "smart"],
-  window: ["screenshot", "windows"],
-  fullscreen: ["screenshot", "fullscreen"],
-  recording: ["recording"],
   clipboard: ["clipboard"],
+  screenshot: ["screenshot"],
+  recording: ["recording"],
   file: ["file"],
   shorten: ["shorten"],
   last: ["last"]
 }
-
-// Screenshot actions wait for the panel to close so it isn't captured.
-var CAPTURE_DELAY = "0.35"
 
 function localPathFromUrl(url) {
   var value = String(url || "")
@@ -28,9 +25,7 @@ function localPathFromUrl(url) {
 function actionCommand(helperPath, action) {
   var args = ACTIONS[action]
   if (!args || !helperPath) return []
-  var command = [helperPath]
-  if (args[0] === "screenshot") command.push("--delay", CAPTURE_DELAY)
-  return command.concat(args)
+  return [helperPath].concat(args)
 }
 
 function shellQuote(value) {
@@ -87,7 +82,6 @@ function shortTime(iso, now) {
 if (typeof module !== "undefined") {
   module.exports = {
     ACTIONS: ACTIONS,
-    CAPTURE_DELAY: CAPTURE_DELAY,
     localPathFromUrl: localPathFromUrl,
     actionCommand: actionCommand,
     shellQuote: shellQuote,

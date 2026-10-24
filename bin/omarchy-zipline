@@ -1,13 +1,15 @@
 #!/bin/bash
 
-# omarchy-zipline: upload screenshots, recordings, files and the clipboard to a
-# Zipline v4 server, then copy the link. The token is read from the config file
+# omarchy-zipline: upload the clipboard, Omarchy's screenshots and recordings,
+# and files to a Zipline v4 server, then copy the link. It never captures the
+# screen itself: Omarchy's Print key does that (and puts the image on the
+# clipboard), this only uploads the result. The token is read from the config file
 # and handed to curl through a header file descriptor, so it never appears in
 # argv, the process list, or any output.
 
 set -uo pipefail
 
-VERSION="1.0.0"
+VERSION="2.0.0"
 CONFIG_FILE="${OMARCHY_ZIPLINE_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/omarchy-zipline/config}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-zipline"
 HISTORY_FILE="$STATE_DIR/history.tsv"
@@ -17,7 +19,6 @@ PROGRESS_FILE="$STATE_DIR/progress.$$"
 
 COPY=1
 QUIET=0
-DELAY=0
 EXPIRES_OVERRIDE=""
 PROGRESS_ID=""
 
@@ -26,12 +27,12 @@ usage() {
 Usage: omarchy-zipline [options] <command> [args]
 
 Commands:
-  screenshot [smart|region|windows|fullscreen]
-                      Capture with Omarchy's screenshot tool, upload, copy link
+  clipboard           Upload the clipboard: an image (such as the screenshot
+                      Print just copied), copied files or text. A lone URL on
+                      the clipboard is shortened instead
+  screenshot          Upload the newest screenshot Omarchy saved (Print)
   recording           Upload the newest Omarchy screen recording
   file [path...]      Upload files (opens the file chooser without paths)
-  clipboard           Upload the clipboard: image, copied files or text.
-                      A lone URL on the clipboard is shortened instead
   shorten [url]       Shorten a URL (defaults to the clipboard)
   last                Copy the most recent link again
   history [count]     Print recent uploads as: url<TAB>kind<TAB>name<TAB>time
@@ -42,7 +43,6 @@ Commands:
 
 Options:
   --expires <value>   Delete after a time: 1h, 7d, never or date=<ISO date>
-  --delay <seconds>   Wait before capturing (lets menus close first)
   --no-copy           Do not copy the link to the clipboard
   --quiet             No desktop notifications (errors still go to stderr)
   -h, --help          Show this help
@@ -371,43 +371,30 @@ upload_and_record() {
 
 # --------------------------------------------------------------- commands ---
 
-cmd_screenshot() {
-  local mode=${1:-smart} path
-  case $mode in
-    smart | region | windows | fullscreen) ;;
-    window) mode=windows ;;
-    full) mode=fullscreen ;;
-    *) die "Unknown screenshot mode: $mode (smart, region, windows, fullscreen)" ;;
-  esac
-  require_config
-  ((DELAY > 0)) && sleep "$DELAY"
-
-  if have omarchy-capture-screenshot; then
-    # "save" skips the editor and prints the saved path; an empty result means
-    # the selection was cancelled.
-    path=$(omarchy-capture-screenshot "$mode" save 2>/dev/null | tail -n 1)
-  else
-    path=$(fallback_screenshot "$mode")
-  fi
-  [[ -n $path && -f $path ]] || exit 0
-  upload_and_record "$path" screenshot
+# Same lookup as omarchy-capture-screenshot: OMARCHY_SCREENSHOT_DIR, then the
+# XDG Pictures dir, then ~/Pictures.
+screenshots_dir() {
+  local dir=""
+  [[ -f ~/.config/user-dirs.dirs ]] && dir=$(
+    # shellcheck disable=SC1090
+    source ~/.config/user-dirs.dirs >/dev/null 2>&1
+    printf '%s' "${XDG_PICTURES_DIR:-}"
+  )
+  printf '%s' "${OMARCHY_SCREENSHOT_DIR:-${dir:-$HOME/Pictures}}"
 }
 
-fallback_screenshot() {
-  # For non-Omarchy Hyprland setups: grim + slurp.
-  local mode=$1 dir geometry path
-  have grim || die "grim is not installed"
-  dir="${XDG_PICTURES_DIR:-$HOME/Pictures}"
-  mkdir -p "$dir"
-  path="$dir/screenshot-$(date +'%Y-%m-%d_%H-%M-%S').png"
-  if [[ $mode == fullscreen ]]; then
-    grim "$path" || return 1
-  else
-    have slurp || die "slurp is not installed"
-    geometry=$(slurp 2>/dev/null) || return 0
-    grim -g "$geometry" "$path" || return 1
-  fi
-  printf '%s\n' "$path"
+newest_screenshot() {
+  find "$(screenshots_dir)" -maxdepth 1 -type f \( -name 'screenshot-*.png' -o -name 'screenshot-*.jpg' \
+    -o -name 'screenshot-*.jpeg' -o -name 'screenshot-*.webp' \) \
+    -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -n 1 | cut -f2-
+}
+
+cmd_screenshot() {
+  require_config
+  local latest
+  latest=$(newest_screenshot)
+  [[ -n $latest ]] || die "No screenshots found in $(screenshots_dir). Take one with Print first"
+  upload_and_record "$latest" screenshot
 }
 
 recordings_dir() {
@@ -486,6 +473,15 @@ cmd_clipboard() {
     [[ $ext == jpeg ]] && ext=jpg
     tmp="${XDG_RUNTIME_DIR:-/tmp}/zipline-clipboard-$(date +'%Y-%m-%d_%H-%M-%S').$ext"
     wl-paste --type "$mime" >"$tmp" 2>/dev/null || die "Could not read the clipboard image"
+    # Right after Print the clipboard holds the screenshot Omarchy also saved:
+    # upload that file instead, so the link keeps its screenshot-<date> name.
+    local shot
+    shot=$(newest_screenshot)
+    if [[ -n $shot ]] && have cmp && cmp -s -- "$tmp" "$shot"; then
+      rm -f "$tmp"
+      upload_and_record "$shot" screenshot
+      return 0
+    fi
     upload_and_record "$tmp" clipboard "$(basename -- "$tmp" | sed 's/^zipline-//')"
     # Keep the file for the notification image, then clean up.
     (sleep 30 && rm -f "$tmp") >/dev/null 2>&1 &
@@ -627,11 +623,6 @@ main() {
     case $1 in
       --no-copy) COPY=0 ;;
       --quiet) QUIET=1 ;;
-      --delay)
-        DELAY=${2:-0}
-        shift
-        ;;
-      --delay=*) DELAY=${1#*=} ;;
       --expires)
         EXPIRES_OVERRIDE=${2:-}
         shift
@@ -649,7 +640,6 @@ main() {
     esac
     shift
   done
-  [[ $DELAY =~ ^[0-9]+([.][0-9]+)?$ ]] || DELAY=0
   set -- "${args[@]}"
 
   local command=${1:-}
