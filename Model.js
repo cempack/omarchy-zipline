@@ -5,10 +5,8 @@
 // the image on the clipboard, these actions only upload what already exists.
 var ACTIONS = {
   clipboard: ["clipboard"],
-  screenshot: ["screenshot"],
-  recording: ["recording"],
   file: ["file"],
-  shorten: ["shorten"],
+  recording: ["recording"],
   last: ["last"]
 }
 
@@ -32,10 +30,6 @@ function shellQuote(value) {
   return "'" + String(value).replace(/'/g, "'\\''") + "'"
 }
 
-function setupCommand(helperPath) {
-  if (!helperPath) return []
-  return ["omarchy-launch-floating-terminal-with-presentation", shellQuote(helperPath) + " setup"]
-}
 
 function isLink(value) {
   return /^https?:\/\/[^\s]+$/.test(String(value || ""))
@@ -85,7 +79,6 @@ if (typeof module !== "undefined") {
     localPathFromUrl: localPathFromUrl,
     actionCommand: actionCommand,
     shellQuote: shellQuote,
-    setupCommand: setupCommand,
     isLink: isLink,
     hostOf: hostOf,
     parseHistory: parseHistory,

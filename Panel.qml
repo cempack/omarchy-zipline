@@ -25,16 +25,14 @@ Panel {
   readonly property int historyCount: Math.max(1, Math.min(10, Number(setting("historyCount", 5)) || 5))
   readonly property var actionRows: [
     { action: "clipboard", icon: "󰅇", label: "Clipboard" },
-    { action: "screenshot", icon: "󰆞", label: "Last screenshot" },
-    { action: "recording", icon: "󰕧", label: "Last recording" },
     { action: "file", icon: "󰈔", label: "File…" },
-    { action: "shorten", icon: "󰌹", label: "Shorten link" },
-    { action: "setup", icon: "󰒓", label: "Set up" }
+    { action: "recording", icon: "󰕧", label: "Last recording" },
+    { action: "last", icon: "󰆏", label: "Copy last link" }
   ]
   readonly property int itemCount: actionRows.length + recent.length
 
   function open() {
-    cursorIndex = serverUrl === "" && serverChecked ? actionRows.length - 1 : 0
+    cursorIndex = 0
     root.refresh()
     root.controller.show()
   }
@@ -68,10 +66,6 @@ Panel {
 
   function runAction(action) {
     root.close()
-    if (action === "setup") {
-      Quickshell.execDetached(Model.setupCommand(root.helperPath))
-      return
-    }
     var command = Model.actionCommand(root.helperPath, action)
     if (command.length > 0) Quickshell.execDetached(command)
   }
@@ -168,7 +162,7 @@ Panel {
           width: parent.width
           text: root.serverUrl !== ""
             ? "Uploads go to " + Model.hostOf(root.serverUrl) + ". The link is copied when done."
-            : (root.serverChecked ? "Not set up yet. Choose Set up and paste your server URL and API token." : "Checking configuration…")
+            : (root.serverChecked ? "Not set up yet. Run omarchy-zipline setup in a terminal." : "Checking configuration…")
           textFormat: Text.PlainText
           color: Qt.darker(root.contentForeground, 1.45)
           font.family: root.contentFontFamily

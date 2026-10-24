@@ -2,17 +2,17 @@
   "schemaVersion": 1,
   "id": "io.github.cempack.zipline",
   "name": "Zipline",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "author": "Elliot Moreau",
   "license": "MIT",
-  "description": "Upload what Omarchy captures (the clipboard after Print, your latest screenshot or recording) and any file to your Zipline server, then copy the link.",
+  "description": "Upload what Omarchy captures (the clipboard after Print, your latest recording) and any file to your Zipline server, then copy the link.",
   "kinds": ["bar-widget"],
   "entryPoints": {
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
     "displayName": "Zipline",
-    "description": "Upload the clipboard (press Print first for a screenshot), the latest screenshot or recording, or a file to Zipline. Right-click uploads the clipboard.",
+    "description": "Upload the clipboard (press Print first for a screenshot), a file or your latest recording to Zipline, and copy the last link again. Right-click uploads the clipboard.",
     "category": "Utilities",
     "aliases": ["zipline", "upload", "share", "screenshot"],
     "allowMultiple": false,

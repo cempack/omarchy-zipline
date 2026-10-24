@@ -7,7 +7,9 @@ const Model = require("../Model.js")
 const helper = "/home/u/.config/omarchy/plugins/io.github.cempack.zipline/bin/omarchy-zipline"
 
 assert.deepStrictEqual(Model.actionCommand(helper, "clipboard"), [helper, "clipboard"])
-assert.deepStrictEqual(Model.actionCommand(helper, "screenshot"), [helper, "screenshot"])
+assert.deepStrictEqual(Model.actionCommand(helper, "last"), [helper, "last"])
+assert.deepStrictEqual(Model.actionCommand(helper, "screenshot"), [])
+assert.deepStrictEqual(Model.actionCommand(helper, "setup"), [])
 assert.deepStrictEqual(Model.actionCommand(helper, "recording"), [helper, "recording"])
 assert.deepStrictEqual(Model.actionCommand(helper, "rm -rf"), [])
 assert.deepStrictEqual(Model.actionCommand("", "clipboard"), [])
@@ -15,7 +17,6 @@ assert.deepStrictEqual(Model.actionCommand("", "clipboard"), [])
 for (const gone of ["region", "window", "fullscreen"]) assert.deepStrictEqual(Model.actionCommand(helper, gone), [])
 assert.ok(Object.values(Model.ACTIONS).every(args => !args.includes("--delay")))
 
-assert.deepStrictEqual(Model.setupCommand("/a b/it's/zl"), ["omarchy-launch-floating-terminal-with-presentation", "'/a b/it'\\''s/zl' setup"])
 
 assert.strictEqual(Model.localPathFromUrl("file:///home/u/My%20Plugins/bin/x"), "/home/u/My Plugins/bin/x")
 assert.strictEqual(Model.hostOf("https://i.example.com/u/abc.png"), "i.example.com")

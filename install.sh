@@ -169,13 +169,10 @@ text = re.sub(r"\n?[ \t]*// " + re.escape(begin) + r".*?// " + re.escape(end) + 
 z = shlex.quote(helper)
 rows = {
     "trigger.capture.zipline": {"icon": "󰅧", "label": "Zipline", "aliases": ["zipline", "upload"]},
-    "trigger.capture.zipline.clipboard": {"icon": "󰅇", "label": "Upload clipboard (after Print)", "action": z + " clipboard"},
-    "trigger.capture.zipline.screenshot": {"icon": "󰆞", "label": "Upload latest screenshot", "action": z + " screenshot"},
-    "trigger.capture.zipline.recording": {"icon": "󰕧", "label": "Upload latest recording", "action": z + " recording"},
+    "trigger.capture.zipline.clipboard": {"icon": "󰅇", "label": "Upload clipboard", "action": z + " clipboard"},
     "trigger.capture.zipline.file": {"icon": "󰈔", "label": "Upload file…", "action": z + " file"},
-    "trigger.capture.zipline.shorten": {"icon": "󰌹", "label": "Shorten link", "action": z + " shorten"},
+    "trigger.capture.zipline.recording": {"icon": "󰕧", "label": "Upload latest recording", "action": z + " recording"},
     "trigger.capture.zipline.last": {"icon": "󰆏", "label": "Copy last link", "action": z + " last"},
-    "trigger.capture.zipline.setup": {"icon": "󰒓", "label": "Set up Zipline", "action": "omarchy-launch-floating-terminal-with-presentation " + shlex.quote(z + " setup")},
 }
 block = "  // " + begin + " (managed by omarchy-zipline; uninstall.sh removes this block)\n"
 block += "".join("  %s: %s,\n" % (json.dumps(k), json.dumps(v, ensure_ascii=False)) for k, v in rows.items())
@@ -221,6 +218,6 @@ echo
 if "$HELPER" server >/dev/null 2>&1; then
   echo "Done. Press Print as usual, then Shift + Print to upload it and copy the link."
 else
-  echo "Done. Next: run 'omarchy-zipline setup' (or Omarchy menu > Capture > Zipline > Set up)"
+  echo "Done. Next: run 'omarchy-zipline setup' in a terminal"
   echo "and paste your server URL and the API token from Zipline (avatar > Copy token)."
 fi

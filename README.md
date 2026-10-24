@@ -11,8 +11,8 @@ that, and copies the image to the clipboard. The plugin only uploads the result:
 2. Press **Shift + Print**: the screenshot is uploaded and its link is copied
 
 - Also uploads your latest screen recording, any file, or whatever else is on the clipboard
-- A bar icon with a panel for every action and your recent links
-- Entries under **Omarchy menu > Capture > Zipline**
+- A bar icon and **Omarchy menu > Capture > Zipline**, both with the same four
+  actions: upload clipboard, upload file, upload latest recording, copy last link
 - Large recordings upload in chunks, so proxies like Cloudflare (100 MB limit) don't get in the way
 - A link on the clipboard is shortened instead of uploaded
 
@@ -47,20 +47,20 @@ and `python3`.
 When an upload finishes, the link is on your clipboard and a notification shows
 it. Click the notification to open the link.
 
-**Bar icon**: left-click opens the panel (all actions plus recent links; click a
-link to copy it again). Right-click uploads the clipboard straight away. Arrow
+**Bar icon**: left-click opens the panel (Clipboard, File…, Last recording, Copy
+last link, plus your recent links; click a link to copy it again). Right-click uploads the clipboard straight away. Arrow
 keys or `hjkl` and Enter work in the panel.
 
 **From a terminal**:
 
 ```sh
 omarchy-zipline clipboard                        # after Print: uploads the screenshot
-omarchy-zipline screenshot                       # newest screenshot Omarchy saved
 omarchy-zipline recording                        # newest screen recording
 omarchy-zipline file ~/Documents/report.pdf      # no path opens the file chooser
 omarchy-zipline shorten https://example.com/a/very/long/link
 omarchy-zipline --expires 1d file notes.txt      # delete after a day
 omarchy-zipline last                             # copy the last link again
+omarchy-zipline screenshot                       # newest screenshot Omarchy saved (scripts)
 omarchy-zipline history 10
 omarchy-zipline status                           # check the URL and token
 ```

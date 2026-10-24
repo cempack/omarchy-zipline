@@ -9,7 +9,7 @@
 
 set -uo pipefail
 
-VERSION="2.0.0"
+VERSION="2.1.0"
 CONFIG_FILE="${OMARCHY_ZIPLINE_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/omarchy-zipline/config}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-zipline"
 HISTORY_FILE="$STATE_DIR/history.tsv"
@@ -30,11 +30,13 @@ Commands:
   clipboard           Upload the clipboard: an image (such as the screenshot
                       Print just copied), copied files or text. A lone URL on
                       the clipboard is shortened instead
-  screenshot          Upload the newest screenshot Omarchy saved (Print)
-  recording           Upload the newest Omarchy screen recording
   file [path...]      Upload files (opens the file chooser without paths)
-  shorten [url]       Shorten a URL (defaults to the clipboard)
+  recording           Upload the newest Omarchy screen recording
   last                Copy the most recent link again
+
+More (for scripts):
+  screenshot          Upload the newest screenshot Omarchy saved (Print)
+  shorten [url]       Shorten a URL (defaults to the clipboard)
   history [count]     Print recent uploads as: url<TAB>kind<TAB>name<TAB>time
   status              Check the server URL and token
   server              Print the configured server URL (no network; exit 1 if unset)

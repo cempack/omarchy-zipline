@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.1.0
+
+- Simpler menu and panel. Omarchy menu > Capture > Zipline and the bar panel
+  now offer the same four actions: **Upload clipboard**, **Upload file…**,
+  **Upload latest recording** and **Copy last link** (plus recent links in the
+  panel).
+- Removed "Upload latest screenshot" (Print puts the screenshot on the
+  clipboard, so Upload clipboard covers it), "Shorten link" (a link on the
+  clipboard is shortened automatically) and "Set up" (run
+  `omarchy-zipline setup` once in a terminal). The `screenshot`, `shorten` and
+  `setup` commands still work from the CLI.
+- `--help` lists the four main commands first.
+
 ## 2.0.0
 
 - The plugin no longer takes screenshots. Omarchy's Print key captures and
