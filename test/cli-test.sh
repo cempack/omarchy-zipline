@@ -154,18 +154,64 @@ url=$(OMARCHY_SCREENSHOT_DIR="$PICS" run clipboard) || fail "clipboard image upl
 rm -f "$WORK/bin/wl-paste"
 echo "ok - clipboard after Print"
 
-# 9. A rejected token fails cleanly and names the problem.
+# 9. --max-views reaches uploads and short links; the shortener also gets the domain.
+run --max-views 1 file "$WORK/note; v2 (final).txt" >/dev/null || fail "max-views upload failed"
+grep '"/api/upload"' "$LOG" | tail -n 1 | jq -e '.headers["x-zipline-max-views"] == "1"' >/dev/null || fail "max-views header missing"
+ZIPLINE_DOMAIN=s.test run --max-views 3 shorten "https://example.com/x" >/dev/null || fail "max-views shorten failed"
+grep '"/api/user/urls"' "$LOG" | tail -n 1 | jq -e '.headers["x-zipline-max-views"] == "3" and .headers["x-zipline-domain"] == "s.test"' >/dev/null ||
+  fail "shorten max-views/domain headers missing"
+if err=$(run --max-views 0 file "$WORK/note; v2 (final).txt" 2>&1); then fail "max-views 0 should fail"; fi
+grep -q 'whole number' <<<"$err" || fail "bad max-views not explained: $err"
+echo "ok - max views"
+
+# 10. History carries expiry and max views; forget removes one link locally.
+run --expires 1d --max-views 2 file "$WORK/note; v2 (final).txt" >/dev/null || fail "upload for history failed"
+row=$("$CLI" history 1)
+[[ $(cut -f5 <<<"$row") == 1d && $(cut -f6 <<<"$row") == 2 ]] || fail "history lacks expiry/max views: $row"
+before=$("$CLI" history 100 | wc -l)
+"$CLI" forget "http://short.test/go/abc" || fail "forget failed"
+after=$("$CLI" history 100 | wc -l)
+((after < before)) || fail "forget kept the link"
+"$CLI" history 100 | grep -q 'short.test' && fail "forget left a copy behind"
+[[ $(stat -c %a "$XDG_STATE_HOME/omarchy-zipline/history.tsv") == 600 ]] || fail "history lost its private mode"
+echo "ok - history columns and forget"
+
+# 11. Several files: every link lands on the clipboard, one per line.
+cat >"$WORK/bin/wl-copy" <<EOF
+#!/bin/bash
+cat >"$WORK/clipboard"
+EOF
+chmod +x "$WORK/bin/wl-copy"
+printf 'a\n' >"$WORK/a.txt"
+printf 'b\n' >"$WORK/b.txt"
+"$CLI" --quiet file "$WORK/a.txt" "$WORK/b.txt" >/dev/null || fail "two-file upload failed"
+[[ $(cat "$WORK/clipboard") == $'http://files.test/u/a.txt\nhttp://files.test/u/b.txt' ]] ||
+  fail "clipboard should hold both links: $(cat "$WORK/clipboard")"
+rm -f "$WORK/bin/wl-copy"
+echo "ok - several files copy every link"
+
+# 12. status --json: account and stats for the panel.
+json=$("$CLI" status --json) || fail "status --json failed: $json"
+jq -e '.state == "ok" and .user == "tester" and .stats.files == 142 and .stats.storage == 1288490188' <<<"$json" >/dev/null ||
+  fail "status --json wrong: $json"
+if json=$(OMARCHY_ZIPLINE_CONFIG="$WORK/none" "$CLI" status --json); then fail "unconfigured status --json should exit 1"; fi
+jq -e '.state == "unconfigured" and .stats == null' <<<"$json" >/dev/null || fail "unconfigured json wrong: $json"
+echo "ok - status --json"
+
+# 13. A rejected token fails cleanly and names the problem.
 sed -i 's/^ZIPLINE_TOKEN=.*/ZIPLINE_TOKEN=wrong/' "$CONFIG"
 if err=$(run file "$WORK/note; v2 (final).txt" 2>&1); then fail "bad token should fail"; fi
 grep -q 'not logged in' <<<"$err" || fail "bad token error not surfaced: $err"
+json=$("$CLI" status --json) && fail "rejected status --json should exit 1"
+jq -e '.state == "rejected" and (.error | length > 0)' <<<"$json" >/dev/null || fail "rejected json wrong: $json"
 echo "ok - rejected token"
 
-# 10. Missing config.
+# 14. Missing config.
 if err=$(OMARCHY_ZIPLINE_CONFIG="$WORK/none" run file "$WORK/big.bin" 2>&1); then fail "missing config should fail"; fi
 grep -q 'omarchy-zipline setup' <<<"$err" || fail "missing config hint absent: $err"
 echo "ok - missing config"
 
-# 11. The token never reached curl's argv.
+# 15. The token never reached curl's argv.
 if grep -q 'test-token-123\|wrong' "$WORK/curl-argv.log"; then fail "token leaked into curl argv"; fi
 echo "ok - token not in argv"
 

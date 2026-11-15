@@ -9,7 +9,7 @@
 
 set -uo pipefail
 
-VERSION="2.1.1"
+VERSION="3.0.0"
 CONFIG_FILE="${OMARCHY_ZIPLINE_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/omarchy-zipline/config}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-zipline"
 HISTORY_FILE="$STATE_DIR/history.tsv"
@@ -19,7 +19,11 @@ PROGRESS_FILE="$STATE_DIR/progress.$$"
 
 COPY=1
 QUIET=0
+JSON=0
 EXPIRES_OVERRIDE=""
+MAX_VIEWS_OVERRIDE=""
+# Links recorded by this run, so several files end up on the clipboard together.
+LINKS=()
 PROGRESS_ID=""
 
 usage() {
@@ -37,14 +41,19 @@ Commands:
 More (for scripts):
   screenshot          Upload the newest screenshot Omarchy saved (Print)
   shorten [url]       Shorten a URL (defaults to the clipboard)
-  history [count]     Print recent uploads as: url<TAB>kind<TAB>name<TAB>time
-  status              Check the server URL and token
+  history [count]     Print recent uploads, newest first, as
+                      url<TAB>kind<TAB>name<TAB>time<TAB>expires<TAB>max-views
+  forget <url>        Remove a link from the local history (the file stays
+                      on the server)
+  status [--json]     Check the server URL and token (--json adds the account
+                      and its upload stats, for the bar panel)
   server              Print the configured server URL (no network; exit 1 if unset)
   setup               Ask for the server URL and token and save them
   config-path         Print the config file path
 
 Options:
   --expires <value>   Delete after a time: 1h, 7d, never or date=<ISO date>
+  --max-views <n>     Stop serving the file or short link after n views
   --no-copy           Do not copy the link to the clipboard
   --quiet             No desktop notifications (errors still go to stderr)
   -h, --help          Show this help
@@ -89,9 +98,14 @@ load_config() {
   ZIPLINE_FOLDER=${ZIPLINE_FOLDER:-$(config_value ZIPLINE_FOLDER || true)}
   ZIPLINE_DOMAIN=${ZIPLINE_DOMAIN:-$(config_value ZIPLINE_DOMAIN || true)}
   ZIPLINE_CHUNK_MB=${ZIPLINE_CHUNK_MB:-$(config_value ZIPLINE_CHUNK_MB || true)}
+  ZIPLINE_MAX_VIEWS=${ZIPLINE_MAX_VIEWS:-$(config_value ZIPLINE_MAX_VIEWS || true)}
   ZIPLINE_CHUNK_MB=${ZIPLINE_CHUNK_MB:-50}
   [[ $ZIPLINE_CHUNK_MB =~ ^[0-9]+$ ]] && ((ZIPLINE_CHUNK_MB > 0)) || ZIPLINE_CHUNK_MB=50
   [[ -n $EXPIRES_OVERRIDE ]] && ZIPLINE_EXPIRES=$EXPIRES_OVERRIDE
+  [[ -n $MAX_VIEWS_OVERRIDE ]] && ZIPLINE_MAX_VIEWS=$MAX_VIEWS_OVERRIDE
+  if [[ -n $ZIPLINE_MAX_VIEWS && ! $ZIPLINE_MAX_VIEWS =~ ^[1-9][0-9]{0,8}$ ]]; then
+    die "Max views must be a whole number from 1 (got: $ZIPLINE_MAX_VIEWS)"
+  fi
   return 0
 }
 
@@ -196,6 +210,15 @@ upload_headers() {
   [[ $ZIPLINE_ORIGINAL_NAME == true ]] && printf 'x-zipline-original-name: true\n'
   [[ -n $ZIPLINE_FOLDER ]] && printf 'x-zipline-folder: %s\n' "$ZIPLINE_FOLDER"
   [[ -n $ZIPLINE_DOMAIN ]] && printf 'x-zipline-domain: %s\n' "$ZIPLINE_DOMAIN"
+  [[ -n $ZIPLINE_MAX_VIEWS ]] && printf 'x-zipline-max-views: %s\n' "$ZIPLINE_MAX_VIEWS"
+  return 0
+}
+
+# The URL shortener reads the same domain and max-views headers (no expiry).
+shorten_headers() {
+  auth_headers
+  [[ -n $ZIPLINE_DOMAIN ]] && printf 'x-zipline-domain: %s\n' "$ZIPLINE_DOMAIN"
+  [[ -n $ZIPLINE_MAX_VIEWS ]] && printf 'x-zipline-max-views: %s\n' "$ZIPLINE_MAX_VIEWS"
   return 0
 }
 
@@ -321,7 +344,7 @@ upload_chunked() {
 shorten_url() {
   local destination=$1 body status url
   curl_call body status -X POST \
-    -H @<(auth_headers) \
+    -H @<(shorten_headers) \
     -H 'content-type: application/json' \
     --data-binary "$(jq -cn --arg d "$destination" '{destination: $d}')" \
     "$ZIPLINE_URL/api/user/urls"
@@ -337,14 +360,23 @@ shorten_url() {
 
 record() {
   # record <url> <kind> <name> [image]
-  local url=$1 kind=$2 name=$3 image=${4:-}
+  local url=$1 kind=$2 name=$3 image=${4:-} expires=""
+  [[ $kind == shorten ]] || expires=${ZIPLINE_EXPIRES:-}
+  name=${name//$'\t'/ }
+  name=${name//$'\n'/ }
   mkdir -p "$STATE_DIR"
   (
     umask 077
-    printf '%s\t%s\t%s\t%s\n' "$url" "$kind" "${name//$'\t'/ }" "$(date -Iseconds)" >>"$HISTORY_FILE"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$url" "$kind" "$name" "$(date -Iseconds)" \
+      "${expires//[$'\t\n']/}" "${ZIPLINE_MAX_VIEWS:-}" >>"$HISTORY_FILE"
   )
+  LINKS+=("$url")
   if ((COPY)); then
-    printf '%s' "$url" | wl-copy 2>/dev/null || true
+    # Several files in one run: every link goes on the clipboard, one per line.
+    (
+      IFS=$'\n'
+      printf '%s' "${LINKS[*]}"
+    ) | wl-copy 2>/dev/null || true
   fi
   printf '%s\n' "$url"
   local headline
@@ -354,6 +386,7 @@ record() {
   else
     headline="Uploaded"
     ((COPY)) && headline="Link copied"
+    ((COPY && ${#LINKS[@]} > 1)) && headline="${#LINKS[@]} links copied"
   fi
   notify "$headline" "$url" "$image" "$url"
 }
@@ -561,6 +594,49 @@ cmd_status() {
   return 1
 }
 
+# One JSON object for the bar panel: whether the plugin is set up, the account
+# and its stats. GET /api/user and GET /api/user/stats only; exits 1 unless the
+# token works.
+cmd_status_json() {
+  load_config
+  local state=ok user="" error="" stats=null body status
+  if [[ -z $ZIPLINE_URL ]]; then
+    state=unconfigured
+  elif [[ -z $(token) ]]; then
+    state=no-token
+  else
+    curl_call body status --max-time 10 -H @<(auth_headers) "$ZIPLINE_URL/api/user"
+    case $status in
+      200) user=$(jq -r '.user.username // empty' <<<"$body" 2>/dev/null) ;;
+      401 | 403) state=rejected ;;
+      000) state=unreachable ;;
+      *) state=error ;;
+    esac
+    [[ $state == ok ]] || error=$(api_error "$body" "$status")
+    if [[ $state == ok ]]; then
+      curl_call body status --max-time 10 -H @<(auth_headers) "$ZIPLINE_URL/api/user/stats"
+      if [[ $status == 200 ]]; then
+        stats=$(jq -c '{files: .filesUploaded, storage: .storageUsed, views: .views, urls: .urlsCreated}' <<<"$body" 2>/dev/null) || stats=null
+        [[ -n $stats ]] || stats=null
+      fi
+    fi
+  fi
+  jq -cn --arg state "$state" --arg server "${ZIPLINE_URL:-}" --arg user "$user" \
+    --arg error "$error" --argjson stats "$stats" \
+    '{state: $state, server: $server, user: $user, error: $error, stats: $stats}'
+  [[ $state == ok ]]
+}
+
+cmd_forget() {
+  local url=${1:-} tmp
+  [[ -n $url ]] || die "Pass the link to forget"
+  [[ -s $HISTORY_FILE ]] || return 0
+  tmp=$(mktemp "$STATE_DIR/.history.XXXXXX")
+  chmod 600 "$tmp"
+  awk -F '\t' -v u="$url" '$1 != u' "$HISTORY_FILE" >"$tmp" && mv -f "$tmp" "$HISTORY_FILE"
+  rm -f "$tmp"
+}
+
 write_config() {
   # write_config <url> <token>
   local url=$1 tok=$2 dir
@@ -582,11 +658,12 @@ write_config() {
     echo "# ZIPLINE_ORIGINAL_NAME=true                     # keep the original file name on downloads"
     echo "# ZIPLINE_FOLDER=<folder id>                     # upload into a folder"
     echo "# ZIPLINE_DOMAIN=files.example.com               # return links on another configured domain"
+    echo "# ZIPLINE_MAX_VIEWS=1                            # links stop working after this many views"
     echo "# ZIPLINE_CHUNK_MB=50                            # files larger than this upload in chunks"
   } >"$tmp"
   if [[ -f $CONFIG_FILE ]]; then
     # Keep the optional settings someone already set.
-    grep -E '^(ZIPLINE_FORMAT|ZIPLINE_EXPIRES|ZIPLINE_ORIGINAL_NAME|ZIPLINE_FOLDER|ZIPLINE_DOMAIN|ZIPLINE_CHUNK_MB|ZIPLINE_TOKEN_FILE)=' \
+    grep -E '^(ZIPLINE_FORMAT|ZIPLINE_EXPIRES|ZIPLINE_ORIGINAL_NAME|ZIPLINE_FOLDER|ZIPLINE_DOMAIN|ZIPLINE_MAX_VIEWS|ZIPLINE_CHUNK_MB|ZIPLINE_TOKEN_FILE)=' \
       "$CONFIG_FILE" >>"$tmp" || true
   fi
   mv -f "$tmp" "$CONFIG_FILE"
@@ -630,6 +707,12 @@ main() {
         shift
         ;;
       --expires=*) EXPIRES_OVERRIDE=${1#*=} ;;
+      --max-views)
+        MAX_VIEWS_OVERRIDE=${2:-}
+        shift
+        ;;
+      --max-views=*) MAX_VIEWS_OVERRIDE=${1#*=} ;;
+      --json) JSON=1 ;;
       -h | --help)
         usage
         return 0
@@ -654,7 +737,8 @@ main() {
     shorten | short | url) cmd_shorten "$@" ;;
     last) cmd_last ;;
     history) cmd_history "$@" ;;
-    status) cmd_status ;;
+    status) if ((JSON)); then cmd_status_json; else cmd_status; fi ;;
+    forget) cmd_forget "$@" ;;
     server) cmd_server ;;
     setup | configure | login) cmd_setup ;;
     config-path) echo "$CONFIG_FILE" ;;

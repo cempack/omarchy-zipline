@@ -2,7 +2,8 @@
 """Minimal stand-in for the Zipline v4 endpoints the CLI uses.
 
 Logs every request as one JSON line to the file given as argv[2] and answers
-like Zipline: /api/upload, /api/upload/partial, /api/user/urls, /api/user.
+like Zipline: /api/upload, /api/upload/partial, /api/user/urls, /api/user and
+/api/user/stats.
 """
 
 import email.parser
@@ -59,6 +60,14 @@ class Handler(BaseHTTPRequestHandler):
             if not self.authorized():
                 return self.reply(401, {"error": "not logged in"})
             return self.reply(200, {"user": {"username": "tester"}})
+        if self.path == "/api/user/stats":
+            if not self.authorized():
+                return self.reply(401, {"error": "not logged in"})
+            return self.reply(200, {
+                "filesUploaded": 142, "favoriteFiles": 3, "views": 5210, "avgViews": 36.7,
+                "storageUsed": 1288490188, "avgStorageUsed": 9073874, "urlsCreated": 12,
+                "urlViews": 80, "sortTypeCount": {"image/png": 100},
+            })
         self.reply(404, {"error": "not found"})
 
     def do_POST(self):
