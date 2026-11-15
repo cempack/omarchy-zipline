@@ -47,9 +47,21 @@ and `python3`.
 When an upload finishes, the link is on your clipboard and a notification shows
 it. Click the notification to open the link.
 
-**Bar icon**: left-click opens the panel (Clipboard, File…, Last recording, Copy
-last link, plus your recent links; click a link to copy it again). Right-click uploads the clipboard straight away. Arrow
-keys or `hjkl` and Enter work in the panel.
+**Bar icon**: left-click opens the panel, right-click uploads the clipboard straight away.
+
+**Panel**: your account and upload stats at the top, then two upload options and
+the four actions (Clipboard, File, Recording, Last link), then your recent links.
+
+- **Expires** (`e`) and **Views** (`v`) apply to the next upload from the panel:
+  delete after 1 hour to 30 days, or stop serving after 1, 5 or 10 views (handy
+  for one-time links). `Shift` or right-click cycles backwards.
+- Recent links show where they point, how old they are and their limits.
+  `↵` copies a link, `o` opens it, `m` copies it as Markdown (images embed),
+  `x` forgets it from this machine's history (the file stays on the server).
+- Arrow keys or `hjkl` move, `r` refreshes, `Tab` jumps to the next bar panel.
+  The footer always shows the keys that apply right now.
+- If nothing is configured yet, the panel offers **Set up Zipline**, which runs
+  `omarchy-zipline setup` in a terminal.
 
 **From a terminal**:
 
@@ -59,10 +71,12 @@ omarchy-zipline recording                        # newest screen recording
 omarchy-zipline file ~/Documents/report.pdf      # no path opens the file chooser
 omarchy-zipline shorten https://example.com/a/very/long/link
 omarchy-zipline --expires 1d file notes.txt      # delete after a day
+omarchy-zipline --max-views 1 file secret.pdf    # stops working after one view
 omarchy-zipline last                             # copy the last link again
 omarchy-zipline screenshot                       # newest screenshot Omarchy saved (scripts)
-omarchy-zipline history 10
-omarchy-zipline status                           # check the URL and token
+omarchy-zipline history 10                       # url, kind, name, time, expiry, view limit
+omarchy-zipline forget <url>                     # drop a link from the local history
+omarchy-zipline status                           # check the URL and token (--json for scripts)
 ```
 
 Screenshots stay where Omarchy saves them (`~/Pictures` by default, or

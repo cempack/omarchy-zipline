@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.0.0
+
+- New panel: account and upload stats in the header (files, storage, views),
+  an **Expires** and a **Views** option for the next upload, larger action
+  tiles, and recent links with their destination, age and limits.
+- One-time links: `--max-views <n>` (and `ZIPLINE_MAX_VIEWS` in the config)
+  stops serving a file or short link after n views.
+- Recent links: copy as Markdown (`m`, images embed), open (`o`), and forget
+  (`x`) to drop a link from the local history without touching the server.
+- Uploading several files puts every link on the clipboard, one per line.
+- `status --json` reports the account and its stats; `history` adds the
+  expiry and view limit columns (older history lines still read fine).
+- A footer shows the keys that apply to the selection and confirms actions.
+- When nothing is configured, the panel offers to run `omarchy-zipline setup`
+  in a terminal.
+
 ## 2.1.1
 
 - Panel: removed the status sentence and the footer hint; recent links take one line each.
