@@ -222,11 +222,9 @@ Panel {
           Layout.fillWidth: true
           spacing: Style.space(10)
 
-          Text {
-            text: "󰅧"
+          ZiplineIcon {
+            iconSize: Style.font.display
             color: root.accent
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.display
           }
 
           ColumnLayout {

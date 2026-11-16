@@ -75,7 +75,12 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: "󰅧"
+    iconComponent: Component {
+      ZiplineIcon {
+        iconSize: button.fontSize
+        color: button.foreground
+      }
+    }
     tooltipText: "Zipline — click for uploads, right-click to upload the clipboard (e.g. after Print)"
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.LeftButton) root.togglePanel()
